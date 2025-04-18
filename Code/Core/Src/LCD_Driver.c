@@ -279,10 +279,15 @@ void LCD_Draw_Char(uint16_t Xpos, uint16_t Ypos, const uint16_t *c)
 }
 
 //This was taken and adapted from stm32's mcu code
-void LCD_DisplayChar(uint16_t Xpos, uint16_t Ypos, uint8_t Ascii)
+void LCD_DisplayChar(uint16_t Xpos, uint16_t Ypos, char text_to_print[])
 {
-  Ascii -= 32;
-  LCD_Draw_Char(Xpos, Ypos, &LCD_Currentfonts->table[Ascii * LCD_Currentfonts->Height]);
+	//altering function to print strings. Printing one char at a time is more customizeable, but takes too long.
+	//Might switch back to printing char by char when everything is functional to make it prettier.
+	for(int i = 0; i < strlen(text_to_print); i++){
+		int print_increment = 10*i;
+		uint8_t Ascii = text_to_print[i] - 32;
+		LCD_Draw_Char(Xpos+print_increment, Ypos, &LCD_Currentfonts->table[Ascii * LCD_Currentfonts->Height]);
+	}
 }
 
 void visualDemo(void)
@@ -376,6 +381,36 @@ uint8_t ReadRegisterFromTouchModule(uint8_t RegToRead)
 void WriteDataToTouchModule(uint8_t RegToWrite, uint8_t writeData)
 {
 	STMPE811_Write(RegToWrite, writeData);
+}
+
+LCD_Quadrant returnTouchQuadrant(STMPE811_TouchData touchLocation){
+	//DIMENSIONS: X: (0, 240) ; Y: (0, 320)
+	// StaticTouchData.x, StaticTouchData.y
+
+	if(touchLocation.x >= 0 && touchLocation.x < 120 && touchLocation.y >= 0 && touchLocation.y < 160){
+		printf("Top Right\n");
+		return TOP_RIGHT;
+	}
+
+	else if(touchLocation.x >= 120 && touchLocation.x <= 240 && touchLocation.y >= 0 && touchLocation.y < 160){
+		printf("Top Left\n");
+		return TOP_LEFT;
+	}
+
+	else if(touchLocation.x >= 0 && touchLocation.x < 120 && touchLocation.y >= 160 && touchLocation.y <= 320){
+		printf("Bottom Right\n");
+		return BOTTOM_RIGHT;
+	}
+
+	else if(touchLocation.x >= 120 && touchLocation.x <= 240 && touchLocation.y >= 160 && touchLocation.y <= 320){
+		printf("Bottom Left\n");
+		return BOTTOM_LEFT;
+	}
+
+	else{
+		printf("Detection Error\n");
+		return DETECTION_ERROR;
+	}
 }
 
 #endif // COMPILE_TOUCH_FUNCTIONS

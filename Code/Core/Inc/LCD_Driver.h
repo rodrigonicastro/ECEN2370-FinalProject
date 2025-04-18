@@ -12,6 +12,8 @@
 #include "ili9341.h"
 #include "fonts.h"
 #include "stmpe811.h"
+#include <stdio.h>
+#include <string.h>
 
 #define COMPILE_TOUCH_FUNCTIONS COMPILE_TOUCH
 #define TOUCH_INTERRUPT_ENABLED COMPILE_TOUCH_INTERRUPT_SUPPORT
@@ -54,11 +56,19 @@
 #define  LCD_PIXEL_HEIGHT   ((uint16_t)320)
 #define  LCD_PIXELS		     ((uint32_t)LCD_PIXEL_WIDTH * (uint32_t)LCD_PIXEL_HEIGHT)
 
+typedef enum{
+  BOTTOM_LEFT = 0,
+  BOTTOM_RIGHT = 1,
+  TOP_RIGHT = 2,
+  TOP_LEFT = 3,
+  DETECTION_ERROR = -1
+} LCD_Quadrant;
+
 void LTCD__Init(void);
 void LTCD_Layer_Init(uint8_t LayerIndex);
 
-void LCD_DrawChar(uint16_t Xpos, uint16_t Ypos, const uint16_t *c);
-void LCD_DisplayChar(uint16_t Xpos, uint16_t Ypos, uint8_t Ascii);
+void LCD_Draw_Char(uint16_t Xpos, uint16_t Ypos, const uint16_t *c);
+void LCD_DisplayChar(uint16_t Xpos, uint16_t Ypos, char text_to_print[]);
 void LCD_SetTextColor(uint16_t Color);
 void LCD_SetFont(FONT_t *fonts);
 
@@ -83,6 +93,8 @@ void LCD_Touch_Polling_Demo(void);
 void DetermineTouchPosition(STMPE811_TouchData * touchStruct);
 uint8_t ReadRegisterFromTouchModule(uint8_t RegToRead);
 void WriteDataToTouchModule(uint8_t RegToWrite, uint8_t writeData);
+
+LCD_Quadrant returnTouchQuadrant(STMPE811_TouchData touchLocation);
 
 #endif // COMPILE_TOUCH_FUNCTIONS
 

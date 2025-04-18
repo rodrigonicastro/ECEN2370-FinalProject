@@ -18,10 +18,10 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
+#include <stdio.h>
+extern void initialise_monitor_handles(void);
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "ApplicationCode.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -79,7 +79,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+  initialise_monitor_handles();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -107,21 +107,60 @@ int main(void)
   MX_I2C3_Init();
   /* USER CODE BEGIN 2 */
   ApplicationInit(); // Initializes the LCD functionality
-  LCD_Visual_Demo();
+  // LCD_Visual_Demo();
   HAL_Delay(5000);
   /* USER CODE END 2 */
 #if COMPILE_TOUCH_FUNCTIONS == 1 // This block will need to be deleted
-  LCD_Touch_Polling_Demo(); // This function Will not return
+  // LCD_Touch_Polling_Demo(); // This function Will not return
 #endif
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
+  GAME_STATE state = MENU;
+  //State Machine Loop
+  while(1){
+    if(state == MENU){
+      printf("%d\n", state);
+      while (1){
+        uint32_t scheduledEvents = getScheduledEvents();
+        
+        if(scheduledEvents && DISPLAY_MENU_SCREEN_EVENT){
+          Display_Menu_Screen();
+          removeSchedulerEvent(DISPLAY_MENU_SCREEN_EVENT);
+        }
 
-    /* USER CODE BEGIN 3 */
+        if(returnTouchStateAndLocation(&StaticTouchData)  == STMPE811_State_Pressed){
+            LCD_Quadrant touchedQuadrant = returnTouchQuadrant(StaticTouchData);
+            if(touchedQuadrant == BOTTOM_LEFT){
+                state = SINGLE_PLAYER;
+                break;
+            }
+            else if(touchedQuadrant == BOTTOM_RIGHT){
+              state = TWO_PLAYER;
+              break;
+            }
+        }
+      }
+    }
+    
+    else if(state == SINGLE_PLAYER){
+      printf("%d\n", state);
+      while (1){
+        //single player code
+      }
+    }
+
+    else if(state == TWO_PLAYER){
+      printf("%d\n", state);
+      while (1){
+        //two player code
+      }
+    }
+
+    else if(state == RESULTS){
+      printf("%d\n", state);
+      while (1){
+        //results code
+      }
+    }
   }
-  /* USER CODE END 3 */
 }
 
 /**
