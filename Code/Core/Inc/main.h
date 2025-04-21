@@ -59,6 +59,7 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+
 typedef enum{
   MENU = 0,
   SINGLE_PLAYER = 1,

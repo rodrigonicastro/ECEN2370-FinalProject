@@ -236,6 +236,14 @@ void LCD_Draw_Vertical_Line(uint16_t x, uint16_t y, uint16_t len, uint16_t color
   }
 }
 
+void LCD_Draw_Horizontal_Line(uint16_t x, uint16_t y, uint16_t len, uint16_t color)
+{
+	for (uint16_t i = 0; i < len; i++)
+	{
+		LCD_Draw_Pixel(i+x, y, color);
+	}
+}
+
 void LCD_Clear(uint8_t LayerIndex, uint16_t Color)
 {
 	if (LayerIndex == 0){
@@ -385,7 +393,6 @@ void WriteDataToTouchModule(uint8_t RegToWrite, uint8_t writeData)
 
 LCD_Quadrant returnTouchQuadrant(STMPE811_TouchData touchLocation){
 	//DIMENSIONS: X: (0, 240) ; Y: (0, 320)
-	// StaticTouchData.x, StaticTouchData.y
 
 	if(touchLocation.x >= 0 && touchLocation.x < 120 && touchLocation.y >= 0 && touchLocation.y < 160){
 		printf("Top Right\n");

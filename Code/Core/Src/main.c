@@ -42,9 +42,9 @@ extern void initialise_monitor_handles(void);
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c3;
 
-LTDC_HandleTypeDef hltdc;
-
 RNG_HandleTypeDef hrng;
+
+LTDC_HandleTypeDef hltdc;
 
 SPI_HandleTypeDef hspi5;
 
@@ -113,6 +113,7 @@ int main(void)
 #if COMPILE_TOUCH_FUNCTIONS == 1 // This block will need to be deleted
   // LCD_Touch_Polling_Demo(); // This function Will not return
 #endif
+
   GAME_STATE state = MENU;
   //State Machine Loop
   while(1){
@@ -141,9 +142,31 @@ int main(void)
     }
     
     else if(state == SINGLE_PLAYER){
+      addSchedulerEvent(DISPLAY_BOARD_EVENT);
+      addSchedulerEvent(SINGLE_PLAYER_EVENT);
+
+      LCD_Clear(0, LCD_COLOR_WHITE);
+
       printf("%d\n", state);
+
+      // for(int i = 0; i < NUM_ROWS; i++){
+      //   for(int j = 0; j < NUM_COLS; j++){
+      //     if( (j+i) % 2 == 0) Update_Board(i, j, 1);
+      //     else Update_Board(i, j, 2);
+      //   }
+      // }
+
       while (1){
-        //single player code
+        uint32_t scheduledEvents = getScheduledEvents();
+        if(scheduledEvents && DISPLAY_BOARD_EVENT){
+            Display_Board();
+            removeSchedulerEvent(DISPLAY_BOARD_EVENT);
+        }
+
+        if(scheduledEvents && SINGLE_PLAYER_EVENT){
+            Single_Player(&hrng);
+            removeSchedulerEvent(SINGLE_PLAYER_EVENT);
+        }
       }
     }
 

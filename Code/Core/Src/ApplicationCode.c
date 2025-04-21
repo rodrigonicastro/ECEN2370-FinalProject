@@ -11,7 +11,12 @@
 
 #define GPIOA_PORT_NUMBER 0
 
+#define FIRST_PLAYER 1
+#define SECOND_PLAYER 2
+
 extern void initialise_monitor_handles(void); 
+
+static bool Drop_Coin = 0;
 
 void ApplicationInit(void)
 {
@@ -109,7 +114,7 @@ void Display_Menu_Screen(){
 	LCD_DisplayChar(117,10,"o");
 	LCD_DisplayChar(133,10,"m");
 	LCD_DisplayChar(148,10,"e");
-	// LCD_DisplayChar(156,10,'!');
+	
 
 	LCD_DisplayChar(45,30,"t");
 	LCD_DisplayChar(55,30,"o");
@@ -130,10 +135,150 @@ void Display_Menu_Screen(){
 	LCD_DisplayChar(150,180,"2-player");
 }
 
+void Display_Board(){
+	for(int i = 0; i <= NUM_COLS; i++){
+		LCD_Draw_Vertical_Line(15+30*i, 80, 181, LCD_COLOR_BLACK);
+	}
+
+	for(int i = 0; i <= NUM_ROWS; i++){
+		LCD_Draw_Horizontal_Line(15, 80+30*i, 210, LCD_COLOR_BLACK);
+	}
+}
+
+void Update_Board(int row, int col, int value){
+	board[row][col] = value;
+}
+
+void Display_Coins(){
+	for(int i = 0; i < NUM_ROWS; i++){
+		for(int j = 0; j < NUM_COLS; j++){
+			if(board[i][j] == 1){
+				LCD_Draw_Circle_Fill(30+30*j, 95+30*i, 8, LCD_COLOR_BLUE);
+			}
+
+			else if(board[i][j] == 2){
+				LCD_Draw_Circle_Fill(30+30*j, 95+30*i, 8, LCD_COLOR_RED);
+			}
+		}
+	}
+}
+
+void Single_Player(RNG_HandleTypeDef* hrng){
+	int turns = 0;
+
+	while(!Game_Over()){
+		//User Turn
+		if(turns % 2 == 0){
+			int position = 0;
+			LCD_Clear(0, LCD_COLOR_WHITE);
+			Display_Board();
+			Display_Coins();
+			LCD_Draw_Circle_Fill(30, 65, 8, LCD_COLOR_BLUE);
+
+			//Choosing Coin Placement Routine
+			while(1){
+				bool touched = 0;
+				if(returnTouchStateAndLocation(&StaticTouchData)  == STMPE811_State_Pressed){
+					LCD_Quadrant touchedQuadrant = returnTouchQuadrant(StaticTouchData);
+					if(touchedQuadrant == BOTTOM_RIGHT){
+						if(position <= 0) position = 6;
+						else position--;
+
+						touched = 1;
+					}
+	
+					else if(touchedQuadrant == BOTTOM_LEFT){
+						if(position >= 6) position = 0;
+						else position++;
+
+						touched = 1;
+					}
+				}
+				
+				//If user touched left or right, update coin position accordingly
+				if(touched){
+					LCD_Clear(0, LCD_COLOR_WHITE);
+					Display_Board();
+					Display_Coins();
+					LCD_Draw_Circle_Fill(30+30*position, 65, 8, LCD_COLOR_BLUE2);
+
+					touched = 0;
+				}
+
+				if(Drop_Coin){
+					Drop_Coin = 0;
+					break;
+				}
+			}
+			
+			//Place Coin Routine
+			bool valid = Place_Coin(position, FIRST_PLAYER);
+			
+			//If move is not valid, continue on user's turn
+			if(!valid) continue;
+		}
+
+		//ai turn
+		else{
+			LCD_DisplayChar(30, 35, "Generating Move.");
+			HAL_Delay(750);
+			LCD_DisplayChar(30, 35, "Generating Move..");
+			HAL_Delay(750);
+			LCD_DisplayChar(30, 35, "Generating Move...");
+
+			#if USE_AI_FOR_SINGLE_PLAYER == 0
+			while(!Place_Coin(Generate_Random_Move(hrng), SECOND_PLAYER)); //generate random moves until one is valid
+			#else
+			//Intelligent AI move generator
+			#endif
+
+		}
+		turns++;
+	}
+}
+
+int Generate_Random_Move(RNG_HandleTypeDef* hrng){
+	uint32_t randNum = 0;
+	HAL_RNG_GenerateRandomNumber(hrng, &randNum);
+
+	return randNum % 7;
+}
+
+bool Place_Coin(int position, int player){
+	if(position > 6 || position < 0) return false;
+
+	for(int i = NUM_ROWS-1; i >= 0; i--){
+		if(board[i][position] == 0){
+			Update_Board(i, position, player);
+			LCD_Clear(0, LCD_COLOR_WHITE);
+			Display_Board();
+			Display_Coins();
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void Two_Player(){
+	//two-player mode code
+}
+
+bool Game_Over(){
+	//algo idea (brute force): first check for all vertical solutions, then horizontal, then diagonal
+	//Check for vertical wins:
+	// for(int i = 0; i < NUM_COLS; i++){
+	// 	for(int j = 0; j < NUM_ROWS-4; j++){
+	// 		if(board[i][j] == board[])
+	// 	}
+	// }
+	return false;
+}
+
 void EXTI0_IRQHandler(){ //Button Interrupt Handler
 	DisableInterrupt(EXTI0_IRQ_NUMBER);
 	
-	//add handler code
+	Drop_Coin = 1;
 
 	ClearPendingEXTIBit(1 << GPIOA_PORT_NUMBER);
 	EnableInterrupt(EXTI0_IRQ_NUMBER);
