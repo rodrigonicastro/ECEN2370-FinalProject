@@ -149,13 +149,6 @@ int main(void)
 
       printf("%d\n", state);
 
-      // for(int i = 0; i < NUM_ROWS; i++){
-      //   for(int j = 0; j < NUM_COLS; j++){
-      //     if( (j+i) % 2 == 0) Update_Board(i, j, 1);
-      //     else Update_Board(i, j, 2);
-      //   }
-      // }
-
       while (1){
         uint32_t scheduledEvents = getScheduledEvents();
         if(scheduledEvents && DISPLAY_BOARD_EVENT){
@@ -167,6 +160,8 @@ int main(void)
             Single_Player(&hrng);
             removeSchedulerEvent(SINGLE_PLAYER_EVENT);
         }
+        state = RESULTS;
+        break;
       }
     }
 
@@ -180,7 +175,12 @@ int main(void)
     else if(state == RESULTS){
       printf("%d\n", state);
       while (1){
-        //results code
+        uint32_t scheduledEvents = getScheduledEvents();
+        if(scheduledEvents && DISPLAY_RESULTS_EVENT){
+          Display_Results();
+          removeSchedulerEvent(DISPLAY_RESULTS_EVENT);
+        }
+        //read touch for user choice (end program or one more game)
       }
     }
   }

@@ -164,9 +164,9 @@ void Display_Coins(){
 }
 
 void Single_Player(RNG_HandleTypeDef* hrng){
-	int turns = 0;
+	turns = 0;
 
-	while(!Game_Over()){
+	while(Game_Status() == ONGOING){
 		//User Turn
 		if(turns % 2 == 0){
 			int position = 0;
@@ -235,6 +235,7 @@ void Single_Player(RNG_HandleTypeDef* hrng){
 		}
 		turns++;
 	}
+	addSchedulerEvent(DISPLAY_RESULTS_EVENT);
 }
 
 int Generate_Random_Move(RNG_HandleTypeDef* hrng){
@@ -264,15 +265,104 @@ void Two_Player(){
 	//two-player mode code
 }
 
-bool Game_Over(){
+GAME_RESULT Game_Status(){
 	//algo idea (brute force): first check for all vertical solutions, then horizontal, then diagonal
-	//Check for vertical wins:
-	// for(int i = 0; i < NUM_COLS; i++){
-	// 	for(int j = 0; j < NUM_ROWS-4; j++){
-	// 		if(board[i][j] == board[])
-	// 	}
-	// }
-	return false;
+	
+	//Check for wins in each position
+	for(int i = 0; i < NUM_ROWS; i++){
+		for(int j = 0; j < NUM_COLS; j++){
+			//If curr position is 0, don't check it
+			if(board[i][j] != 0){
+				//Vertical win (only check if it won't exceed dimensions)
+				if(j+3 < NUM_ROWS){
+					if(board[i][j] == board[i][j+1] && board[i][j+1] == board[i][j+2] && board[i][j+2] == board[j+3]){
+						if(board[i][j] == 1){
+							num_blue_victories++;
+							return BLUE_WINS;
+						} 
+						else{
+							num_red_victories++;
+							return RED_WINS;
+						}
+					}
+				}
+
+				//Horizontal win (only check if it won't exceed dimensions)
+				if(i+3 < NUM_COLS){
+					if(board[i][j] == board[i+1][j] && board[i+1][j] == board[i+2][j] && board[i+2][j] == board[i+3][j]){
+						if(board[i][j] == 1){
+							num_blue_victories++;
+							return BLUE_WINS;
+						}
+						else{
+							num_red_victories++;
+							return RED_WINS;
+						}
+					}
+				}
+
+				//Diagonal win (only check if it won't exceed dimensions)
+				if(i+3 < NUM_COLS && j+3 < NUM_ROWS){
+					if(board[i][j] == board[i+1][j+1] && board[i+1][j+1] == board[i+2][j+2] && board[i+2][j+2] == board[i+3][j+3]){
+						if(board[i][j] == 1){
+							num_blue_victories++;
+							return BLUE_WINS;
+						}
+						else{
+							num_red_victories++;
+							return RED_WINS;
+						}
+					}
+				}
+			}
+			
+		}
+	}
+
+	//Check for tie (board is full)
+	for(int i = 0; i < NUM_ROWS; i++){
+		for(int j = 0; j < NUM_COLS; j++){
+			if(board[i][j] == 0){
+				return ONGOING;
+			}
+		}
+	}
+
+	num_ties++;
+	return TIE;
+}
+
+void Display_Results(){
+	GAME_RESULT result = Game_Status();
+	switch(result){
+		case BLUE_WINS:
+			LCD_SetTextColor(LCD_COLOR_BLUE);
+			LCD_DisplayChar(65, 10, "Blue Wins!");
+			break;
+		case RED_WINS:
+			LCD_SetTextColor(LCD_COLOR_RED);
+			LCD_DisplayChar(70, 10, "Red Wins!");
+			break;
+		case TIE:
+			LCD_SetTextColor(LCD_COLOR_BLACK);
+			LCD_DisplayChar(60, 10, "It's a tie!");
+			break;
+		default:
+			LCD_SetTextColor(LCD_COLOR_BLACK);
+			LCD_DisplayChar(80, 10, "Unknown erorr :(");
+			break;
+	}
+	LCD_SetTextColor(LCD_COLOR_BLACK);
+	LCD_DisplayChar(65, 45, "Show stats");
+
+	while(1){
+		if(returnTouchStateAndLocation(&StaticTouchData)  == STMPE811_State_Pressed){
+			LCD_Quadrant touchedQuadrant = returnTouchQuadrant(StaticTouchData);
+			if(touchedQuadrant == BOTTOM_LEFT || touchedQuadrant == BOTTOM_RIGHT) break;
+		}
+	}
+
+	//show stats
 }
 
 void EXTI0_IRQHandler(){ //Button Interrupt Handler

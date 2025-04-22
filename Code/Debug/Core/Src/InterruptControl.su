@@ -1,0 +1,5 @@
+../Core/Src/InterruptControl.c:3:6:EnableInterrupt	16	static
+../Core/Src/InterruptControl.c:7:6:DisableInterrupt	16	static
+../Core/Src/InterruptControl.c:11:6:SetPendingInterrupt	16	static
+../Core/Src/InterruptControl.c:15:6:ClearPendingInterrupt	16	static
+../Core/Src/InterruptControl.c:19:6:ClearPendingEXTIBit	16	static

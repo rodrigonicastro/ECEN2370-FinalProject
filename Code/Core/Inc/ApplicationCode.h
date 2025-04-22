@@ -35,6 +35,18 @@ static STMPE811_TouchData StaticTouchData;
 
 static int board[NUM_ROWS][NUM_COLS];
 
+static int num_blue_victories;
+static int num_red_victories;
+static int num_ties;
+static int turns;
+
+typedef enum{
+    ONGOING = 0,
+    BLUE_WINS = 1,
+    RED_WINS = 2,
+    TIE = 3
+} GAME_RESULT;
+
 void ButtonInit();
 
 void greenLEDInit();
@@ -69,6 +81,8 @@ bool Place_Coin(int position, int player);
 
 void Two_Player();
 
-bool Game_Over();
+GAME_RESULT Game_Status();
+
+void Display_Results();
 
 #endif /* INC_APPLICATIONCODE_H_ */

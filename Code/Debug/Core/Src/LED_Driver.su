@@ -1,0 +1,4 @@
+../Core/Src/LED_Driver.c:3:6:LED_Init	40	static
+../Core/Src/LED_Driver.c:23:6:ToggleLED	16	static
+../Core/Src/LED_Driver.c:34:6:TurnOffLED	16	static
+../Core/Src/LED_Driver.c:46:6:TurnOnLED	16	static
