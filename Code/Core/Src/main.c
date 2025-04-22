@@ -166,9 +166,26 @@ int main(void)
     }
 
     else if(state == TWO_PLAYER){
+      addSchedulerEvent(DISPLAY_BOARD_EVENT);
+      addSchedulerEvent(TWO_PLAYER_EVENT);
+
+      LCD_Clear(0, LCD_COLOR_WHITE);
+
       printf("%d\n", state);
+
       while (1){
-        //two player code
+        uint32_t scheduledEvents = getScheduledEvents();
+        if(scheduledEvents && DISPLAY_BOARD_EVENT){
+            Display_Board();
+            removeSchedulerEvent(DISPLAY_BOARD_EVENT);
+        }
+
+        if(scheduledEvents && TWO_PLAYER_EVENT){
+            Two_Player();
+            removeSchedulerEvent(TWO_PLAYER_EVENT);
+        }
+        state = RESULTS;
+        break;
       }
     }
 
@@ -180,7 +197,7 @@ int main(void)
           Display_Results();
           removeSchedulerEvent(DISPLAY_RESULTS_EVENT);
         }
-        //read touch for user choice (end program or one more game)
+        //take user input to terminate or play another game
       }
     }
   }

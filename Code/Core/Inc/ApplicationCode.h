@@ -12,6 +12,7 @@
 #include "Scheduler.h"
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #ifndef INC_APPLICATIONCODE_H_
 #define INC_APPLICATIONCODE_H_
@@ -76,6 +77,8 @@ void Display_Coins();
 void Single_Player(RNG_HandleTypeDef* hrng);
 
 int Generate_Random_Move(RNG_HandleTypeDef* hrng);
+
+int Generate_AI_Move();
 
 bool Place_Coin(int position, int player);
 

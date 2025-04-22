@@ -11,8 +11,8 @@
 
 #define GPIOA_PORT_NUMBER 0
 
-#define FIRST_PLAYER 1
-#define SECOND_PLAYER 2
+#define BLUE_PLAYER 1
+#define RED_PLAYER 2
 
 extern void initialise_monitor_handles(void); 
 
@@ -212,7 +212,7 @@ void Single_Player(RNG_HandleTypeDef* hrng){
 			}
 			
 			//Place Coin Routine
-			bool valid = Place_Coin(position, FIRST_PLAYER);
+			bool valid = Place_Coin(position, BLUE_PLAYER);
 			
 			//If move is not valid, continue on user's turn
 			if(!valid) continue;
@@ -227,9 +227,9 @@ void Single_Player(RNG_HandleTypeDef* hrng){
 			LCD_DisplayChar(30, 35, "Generating Move...");
 
 			#if USE_AI_FOR_SINGLE_PLAYER == 0
-			while(!Place_Coin(Generate_Random_Move(hrng), SECOND_PLAYER)); //generate random moves until one is valid
+			while(!Place_Coin(Generate_Random_Move(hrng), RED_PLAYER)); //generate random moves until one is valid
 			#else
-			//Intelligent AI move generator
+			while(!Place_Coin(Generate_AI_Move(), RED_PLAYER));
 			#endif
 
 		}
@@ -243,6 +243,28 @@ int Generate_Random_Move(RNG_HandleTypeDef* hrng){
 	HAL_RNG_GenerateRandomNumber(hrng, &randNum);
 
 	return randNum % 7;
+}
+
+int Generate_AI_Move(){
+	//Defense: if blue has 3 in a row and red can block it, play this move
+		//Could either get a list of sequences and sort by the number of coins in a row (descending)
+			//This would make the bot very defensive
+		//Or only store sequences with 3 blue coins in a row
+			//This would make the bot less defensive
+
+		//New idea: sort placement positions (0-5) by the length of blue sequence it would interrupt
+			//How to do this? no idea yet
+				//Brute force is obviously a potential method, but I don't like it
+		
+		//Also needs to account for non-continous sequences, like (0,0), (0,1), and (0,3)
+			//(if we placed a red coin in (0,2) it would stop blue from winning)
+
+	//Attack: play a move where # of red coins in a row increases (prioritize higher nums)
+		//Could get a list of sequences and sort by the number of coins in a row (descending)
+
+	//Do I want the bot to play defensively only when user has 3 in a row, or do I want the bot to try and predict moves?
+
+	//Else: play random?
 }
 
 bool Place_Coin(int position, int player){
@@ -262,7 +284,113 @@ bool Place_Coin(int position, int player){
 }
 
 void Two_Player(){
-	//two-player mode code
+	turns = 0;
+
+	while(Game_Status() == ONGOING){
+		//Blue's Turn
+		if(turns % 2 == 0){
+			int position = 0;
+			LCD_Clear(0, LCD_COLOR_WHITE);
+			Display_Board();
+			Display_Coins();
+			LCD_Draw_Circle_Fill(30, 65, 8, LCD_COLOR_BLUE);
+
+			//Choosing Coin Placement Routine
+			while(1){
+				bool touched = 0;
+				if(returnTouchStateAndLocation(&StaticTouchData)  == STMPE811_State_Pressed){
+					LCD_Quadrant touchedQuadrant = returnTouchQuadrant(StaticTouchData);
+					if(touchedQuadrant == BOTTOM_RIGHT){
+						if(position <= 0) position = 6;
+						else position--;
+
+						touched = 1;
+					}
+	
+					else if(touchedQuadrant == BOTTOM_LEFT){
+						if(position >= 6) position = 0;
+						else position++;
+
+						touched = 1;
+					}
+				}
+				
+				//If user touched left or right, update coin position accordingly
+				if(touched){
+					LCD_Clear(0, LCD_COLOR_WHITE);
+					Display_Board();
+					Display_Coins();
+					LCD_Draw_Circle_Fill(30+30*position, 65, 8, LCD_COLOR_BLUE);
+
+					touched = 0;
+				}
+
+				if(Drop_Coin){
+					Drop_Coin = 0;
+					break;
+				}
+			}
+			
+			//Place Coin Routine
+			bool valid = Place_Coin(position, BLUE_PLAYER);
+			
+			//If move is not valid, continue on user's turn
+			if(!valid) continue;
+		}
+
+		//Red's Turn
+		else{
+			int position = 0;
+			LCD_Clear(0, LCD_COLOR_WHITE);
+			Display_Board();
+			Display_Coins();
+			LCD_Draw_Circle_Fill(30, 65, 8, LCD_COLOR_RED);
+
+			//Choosing Coin Placement Routine
+			while(1){
+				bool touched = 0;
+				if(returnTouchStateAndLocation(&StaticTouchData)  == STMPE811_State_Pressed){
+					LCD_Quadrant touchedQuadrant = returnTouchQuadrant(StaticTouchData);
+					if(touchedQuadrant == BOTTOM_RIGHT){
+						if(position <= 0) position = 6;
+						else position--;
+
+						touched = 1;
+					}
+	
+					else if(touchedQuadrant == BOTTOM_LEFT){
+						if(position >= 6) position = 0;
+						else position++;
+
+						touched = 1;
+					}
+				}
+				
+				//If user touched left or right, update coin position accordingly
+				if(touched){
+					LCD_Clear(0, LCD_COLOR_WHITE);
+					Display_Board();
+					Display_Coins();
+					LCD_Draw_Circle_Fill(30+30*position, 65, 8, LCD_COLOR_RED);
+
+					touched = 0;
+				}
+
+				if(Drop_Coin){
+					Drop_Coin = 0;
+					break;
+				}
+			}
+			
+			//Place Coin Routine
+			bool valid = Place_Coin(position, RED_PLAYER);
+			
+			//If move is not valid, continue on user's turn
+			if(!valid) continue;
+		}
+		turns++;
+	}
+	addSchedulerEvent(DISPLAY_RESULTS_EVENT);
 }
 
 GAME_RESULT Game_Status(){
@@ -273,45 +401,53 @@ GAME_RESULT Game_Status(){
 		for(int j = 0; j < NUM_COLS; j++){
 			//If curr position is 0, don't check it
 			if(board[i][j] != 0){
-				//Vertical win (only check if it won't exceed dimensions)
-				if(j+3 < NUM_ROWS){
-					if(board[i][j] == board[i][j+1] && board[i][j+1] == board[i][j+2] && board[i][j+2] == board[j+3]){
-						if(board[i][j] == 1){
-							num_blue_victories++;
-							return BLUE_WINS;
-						} 
-						else{
-							num_red_victories++;
-							return RED_WINS;
-						}
+				//Horizomtal win (only check if it won't exceed dimensions)
+				if(j+3 < NUM_COLS){
+					if(board[i][j] == board[i][j+1] && board[i][j+1] == board[i][j+2] && board[i][j+2] == board[i][j+3]){
+						if(board[i][j] == 1) return BLUE_WINS;
+						else return RED_WINS;
 					}
 				}
 
-				//Horizontal win (only check if it won't exceed dimensions)
-				if(i+3 < NUM_COLS){
+				//Vertical win (only check if it won't exceed dimensions)
+				if(i+3 < NUM_ROWS){
 					if(board[i][j] == board[i+1][j] && board[i+1][j] == board[i+2][j] && board[i+2][j] == board[i+3][j]){
-						if(board[i][j] == 1){
-							num_blue_victories++;
-							return BLUE_WINS;
-						}
-						else{
-							num_red_victories++;
-							return RED_WINS;
-						}
+						if(board[i][j] == 1) return BLUE_WINS;
+						else return RED_WINS;
 					}
 				}
 
 				//Diagonal win (only check if it won't exceed dimensions)
-				if(i+3 < NUM_COLS && j+3 < NUM_ROWS){
+				//4 different diagonals to check
+				//Bottom-right diagonal
+				if(i+3 < NUM_ROWS && j+3 < NUM_COLS){////////////////
 					if(board[i][j] == board[i+1][j+1] && board[i+1][j+1] == board[i+2][j+2] && board[i+2][j+2] == board[i+3][j+3]){
-						if(board[i][j] == 1){
-							num_blue_victories++;
-							return BLUE_WINS;
-						}
-						else{
-							num_red_victories++;
-							return RED_WINS;
-						}
+						if(board[i][j] == 1) return BLUE_WINS;
+						else return RED_WINS;
+					}
+				}
+
+				//Top-right diagonal
+				if(i+3 < NUM_ROWS && j-3 >= 0){
+					if(board[i][j] == board[i+1][j-1] && board[i+1][j-1] == board[i+2][j-2] && board[i+2][j-2] == board[i+3][j-3]){
+						if(board[i][j] == 1) return BLUE_WINS;
+						else return RED_WINS;
+					}
+				}
+
+				//Bottom-left diagonal
+				if(i-3 >= 0 && j+3 < NUM_COLS){
+					if(board[i][j] == board[i-1][j+1] && board[i-1][j+1] == board[i-2][j+2] && board[i-2][j+2] == board[i-3][j+3]){
+						if(board[i][j] == 1) return BLUE_WINS;
+						else return RED_WINS;
+					}
+				}
+
+				//Top-left diagonal
+				if(i-3 >= 0 && j-3 >= 0){
+					if(board[i][j] == board[i-1][j-1] && board[i-1][j-1] == board[i-2][j-2] && board[i-2][j-2] == board[i-3][j-3]){
+						if(board[i][j] == 1) return BLUE_WINS;
+						else return RED_WINS;
 					}
 				}
 			}
@@ -322,18 +458,19 @@ GAME_RESULT Game_Status(){
 	//Check for tie (board is full)
 	for(int i = 0; i < NUM_ROWS; i++){
 		for(int j = 0; j < NUM_COLS; j++){
-			if(board[i][j] == 0){
-				return ONGOING;
-			}
+			if(board[i][j] == 0) return ONGOING;
 		}
 	}
-
-	num_ties++;
 	return TIE;
 }
 
 void Display_Results(){
 	GAME_RESULT result = Game_Status();
+
+	if(result == BLUE_WINS) num_blue_victories++;
+	else if (result == RED_WINS) num_red_victories++;
+	else if (result == TIE) num_ties++;
+
 	switch(result){
 		case BLUE_WINS:
 			LCD_SetTextColor(LCD_COLOR_BLUE);
@@ -355,6 +492,7 @@ void Display_Results(){
 	LCD_SetTextColor(LCD_COLOR_BLACK);
 	LCD_DisplayChar(65, 45, "Show stats");
 
+	//Wait for user to click show stats
 	while(1){
 		if(returnTouchStateAndLocation(&StaticTouchData)  == STMPE811_State_Pressed){
 			LCD_Quadrant touchedQuadrant = returnTouchQuadrant(StaticTouchData);
@@ -362,7 +500,50 @@ void Display_Results(){
 		}
 	}
 
-	//show stats
+	LCD_Clear(0, LCD_COLOR_WHITE);
+
+	char str_blue_wins[20];
+	sprintf(str_blue_wins, "%d", num_blue_victories);
+
+	char str_red_wins[20];
+	sprintf(str_red_wins, "%d", num_red_victories);
+
+	char str_ties[20];
+	sprintf(str_ties, "%d", num_ties);
+
+	int num_games = num_blue_victories + num_red_victories + num_ties;
+	char str_games[20];
+	sprintf(str_games, "%d", num_games);
+
+	LCD_SetTextColor(LCD_COLOR_BLACK);
+	LCD_DisplayChar(5, 10, "Total games played: ");
+	LCD_DisplayChar(200, 10, str_games);
+
+	LCD_SetTextColor(LCD_COLOR_BLUE);
+	LCD_DisplayChar(5, 40, "Blue won ");
+	LCD_DisplayChar(93, 40, str_blue_wins);
+	LCD_DisplayChar(110, 40, "games");
+
+	LCD_SetTextColor(LCD_COLOR_RED);
+	LCD_DisplayChar(5, 70, "Red won ");
+	LCD_DisplayChar(93, 70, str_red_wins);
+	LCD_DisplayChar(110, 70, "games");
+
+	LCD_SetTextColor(LCD_COLOR_BLACK);
+	LCD_DisplayChar(5, 100, str_ties);
+	LCD_DisplayChar(20, 100, "games ended in a tie");
+
+	LCD_DisplayChar(5, 130, "This game took ");
+	// LCD_DisplayChar(160, 130, timer_value);
+	LCD_DisplayChar(155, 150, "seconds");
+
+	LCD_DisplayChar(10, 200, "Play another game?");
+
+	LCD_SetTextColor(LCD_COLOR_RED);
+	LCD_DisplayChar(20, 250, "No");
+
+	LCD_SetTextColor(LCD_COLOR_GREEN);
+	LCD_DisplayChar(190, 250, "Yes");
 }
 
 void EXTI0_IRQHandler(){ //Button Interrupt Handler

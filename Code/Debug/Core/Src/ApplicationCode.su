@@ -17,7 +17,7 @@
 ../Core/Src/ApplicationCode.c:166:6:Single_Player	24	static
 ../Core/Src/ApplicationCode.c:241:5:Generate_Random_Move	24	static
 ../Core/Src/ApplicationCode.c:248:6:Place_Coin	24	static
-../Core/Src/ApplicationCode.c:264:6:Two_Player	4	static
-../Core/Src/ApplicationCode.c:268:13:Game_Status	24	static
-../Core/Src/ApplicationCode.c:335:6:Display_Results	16	static
-../Core/Src/ApplicationCode.c:368:6:EXTI0_IRQHandler	8	static
+../Core/Src/ApplicationCode.c:264:6:Two_Player	32	static
+../Core/Src/ApplicationCode.c:374:13:Game_Status	24	static
+../Core/Src/ApplicationCode.c:445:6:Display_Results	96	static
+../Core/Src/ApplicationCode.c:527:6:EXTI0_IRQHandler	8	static
