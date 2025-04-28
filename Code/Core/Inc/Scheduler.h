@@ -9,6 +9,7 @@
 #define TWO_PLAYER_EVENT (1 << 3)
 #define PLACE_COIN_EVENT (1 << 4)
 #define DISPLAY_RESULTS_EVENT (1 << 5)
+#define DISPLAY_QUIT_SCREEN_EVENT (1 << 6)
 
 uint32_t getScheduledEvents();
 

@@ -17,7 +17,7 @@
 #ifndef INC_APPLICATIONCODE_H_
 #define INC_APPLICATIONCODE_H_
 
-#define USE_AI_FOR_SINGLE_PLAYER 0
+#define USE_AI_FOR_SINGLE_PLAYER 1
 
 void ApplicationInit(void);
 void LCD_Visual_Demo(void);
@@ -78,7 +78,7 @@ void Single_Player(RNG_HandleTypeDef* hrng);
 
 int Generate_Random_Move(RNG_HandleTypeDef* hrng);
 
-int Generate_AI_Move();
+int Generate_AI_Move(RNG_HandleTypeDef* hrng);
 
 bool Place_Coin(int position, int player);
 
@@ -86,6 +86,20 @@ void Two_Player();
 
 GAME_RESULT Game_Status();
 
-void Display_Results();
+void Display_Results(uint32_t seconds);
+
+void Display_Quit_Screen();
+
+void Reset_Board();
+
+void Reset_Stats();
+
+void Start_Timer();
+
+void Stop_Timer();
+
+void Reset_Timer();
+
+uint32_t Get_Timer_Value();
 
 #endif /* INC_APPLICATIONCODE_H_ */

@@ -64,8 +64,13 @@ typedef enum{
   MENU = 0,
   SINGLE_PLAYER = 1,
   TWO_PLAYER = 2,
-  RESULTS = 3
+  RESULTS = 3,
+  QUIT = 4
 } GAME_STATE;
+
+#define PCLK 16000000
+
+#define SR_UIF_OFFSET 0
 
 #define PC14_OSC32_IN_Pin GPIO_PIN_14
 #define PC14_OSC32_IN_GPIO_Port GPIOC

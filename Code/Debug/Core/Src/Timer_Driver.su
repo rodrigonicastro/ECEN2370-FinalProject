@@ -1,0 +1,4 @@
+../Core/Src/Timer_Driver.c:3:6:TIM_Start	4	static
+../Core/Src/Timer_Driver.c:7:6:TIM_Stop	4	static
+../Core/Src/Timer_Driver.c:11:6:TIM_Reset	4	static
+../Core/Src/Timer_Driver.c:15:10:TIM_Get_Value	4	static

@@ -102,13 +102,16 @@ int main(void)
   MX_GPIO_Init();
   MX_LTDC_Init();
   MX_RNG_Init();
+  
   MX_TIM2_Init();
+  HAL_TIM_Base_Start_IT(&htim2);
+
   MX_SPI5_Init();
   MX_I2C3_Init();
   /* USER CODE BEGIN 2 */
   ApplicationInit(); // Initializes the LCD functionality
   // LCD_Visual_Demo();
-  HAL_Delay(5000);
+  HAL_Delay(3000);
   /* USER CODE END 2 */
 #if COMPILE_TOUCH_FUNCTIONS == 1 // This block will need to be deleted
   // LCD_Touch_Polling_Demo(); // This function Will not return
@@ -142,6 +145,9 @@ int main(void)
     }
     
     else if(state == SINGLE_PLAYER){
+      HAL_TIM_Base_Start(&htim2);
+      printf("starting timer\n");
+
       addSchedulerEvent(DISPLAY_BOARD_EVENT);
       addSchedulerEvent(SINGLE_PLAYER_EVENT);
 
@@ -163,9 +169,14 @@ int main(void)
         state = RESULTS;
         break;
       }
+      printf("stopping timer\n");
+      HAL_TIM_Base_Stop(&htim2);
     }
 
     else if(state == TWO_PLAYER){
+      HAL_TIM_Base_Start(&htim2);
+      printf("starting timer\n");
+
       addSchedulerEvent(DISPLAY_BOARD_EVENT);
       addSchedulerEvent(TWO_PLAYER_EVENT);
 
@@ -187,20 +198,66 @@ int main(void)
         state = RESULTS;
         break;
       }
+      printf("stopping timer\n");
+      HAL_TIM_Base_Stop(&htim2);
     }
 
     else if(state == RESULTS){
       printf("%d\n", state);
+      uint32_t TIM_CNT = __HAL_TIM_GET_COUNTER(&htim2);
+      uint32_t sysclockfreq = HAL_RCC_GetSysClockFreq();
+      printf("freq: %d\n", sysclockfreq);
+      uint32_t seconds = (TIM_CNT/sysclockfreq)*2;
+
+      
+
+      printf("%d seconds \n", seconds);
+      printf("%d timer\n", TIM_CNT);
+
       while (1){
         uint32_t scheduledEvents = getScheduledEvents();
         if(scheduledEvents && DISPLAY_RESULTS_EVENT){
-          Display_Results();
+          Display_Results(seconds);
           removeSchedulerEvent(DISPLAY_RESULTS_EVENT);
         }
-        //take user input to terminate or play another game
+
+        if(returnTouchStateAndLocation(&StaticTouchData)  == STMPE811_State_Pressed){
+          LCD_Quadrant touchedQuadrant = returnTouchQuadrant(StaticTouchData);
+          if(touchedQuadrant == BOTTOM_LEFT){
+              state = QUIT;
+              addSchedulerEvent(DISPLAY_QUIT_SCREEN_EVENT);
+              break;
+          }
+          else if(touchedQuadrant == BOTTOM_RIGHT){
+              state = MENU;
+              addSchedulerEvent(DISPLAY_MENU_SCREEN_EVENT);
+              Reset_Board();
+              printf("resetting timer\n");
+              __HAL_TIM_SET_COUNTER(&htim2, 0);
+              printf("timer: %d", __HAL_TIM_GET_COUNTER(&htim2));
+              break;
+          }
+        }
       }
     }
+
+    else if(state == QUIT){
+      printf("%d\n", state);
+      while(1){
+        uint32_t scheduledEvents = getScheduledEvents();
+        if(scheduledEvents && DISPLAY_QUIT_SCREEN_EVENT){
+            Display_Quit_Screen();
+            removeSchedulerEvent(DISPLAY_QUIT_SCREEN_EVENT);
+        }
+        break;
+      }
+      break;
+    }
   }
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+  printf("timer interrupt");
 }
 
 /**
@@ -466,6 +523,7 @@ static void MX_TIM2_Init(void)
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
@@ -481,6 +539,7 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
+  
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
@@ -676,6 +735,15 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
+
+// void TIM2_IRQHandler(){
+// 	DisableInterrupt(TIM2_IRQn);
+
+//   printf("timer interrupt");
+// 	__HAL_TIM_CLEAR_IT(&htim2, SR_UIF_OFFSET);
+
+// 	EnableInterrupt(TIM2_IRQn);
+// }
 
 #ifdef  USE_FULL_ASSERT
 /**

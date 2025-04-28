@@ -102,6 +102,10 @@ void turnOffRedLED(){
 	TurnOffLED(RED_LED);
 }
 
+void TimerInit(){
+
+}
+
 void Display_Menu_Screen(){
 	LCD_Clear(0, LCD_COLOR_WHITE);
 	LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -164,6 +168,8 @@ void Display_Coins(){
 }
 
 void Single_Player(RNG_HandleTypeDef* hrng){
+	//start timer
+	
 	turns = 0;
 
 	while(Game_Status() == ONGOING){
@@ -229,13 +235,14 @@ void Single_Player(RNG_HandleTypeDef* hrng){
 			#if USE_AI_FOR_SINGLE_PLAYER == 0
 			while(!Place_Coin(Generate_Random_Move(hrng), RED_PLAYER)); //generate random moves until one is valid
 			#else
-			while(!Place_Coin(Generate_AI_Move(), RED_PLAYER));
+			while(!Place_Coin(Generate_AI_Move(hrng), RED_PLAYER));
 			#endif
 
 		}
 		turns++;
 	}
 	addSchedulerEvent(DISPLAY_RESULTS_EVENT);
+	//stop timer
 }
 
 int Generate_Random_Move(RNG_HandleTypeDef* hrng){
@@ -245,26 +252,269 @@ int Generate_Random_Move(RNG_HandleTypeDef* hrng){
 	return randNum % 7;
 }
 
-int Generate_AI_Move(){
+int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 	//Defense: if blue has 3 in a row and red can block it, play this move
 		//Could either get a list of sequences and sort by the number of coins in a row (descending)
 			//This would make the bot very defensive
+			//Could store this as a 2d array where the inner arrays would have size 2 with each element being the x,y values
 		//Or only store sequences with 3 blue coins in a row
 			//This would make the bot less defensive
 
 		//New idea: sort placement positions (0-5) by the length of blue sequence it would interrupt
 			//How to do this? no idea yet
 				//Brute force is obviously a potential method, but I don't like it
+				//If I place a red coin in position 0, what is the length of blue coins I would be interrupting? etc.
+					//Play the move that interrupts the biggest sequence if this sequence >(=?) 2, else: play attack
 		
 		//Also needs to account for non-continous sequences, like (0,0), (0,1), and (0,3)
 			//(if we placed a red coin in (0,2) it would stop blue from winning)
 
 	//Attack: play a move where # of red coins in a row increases (prioritize higher nums)
 		//Could get a list of sequences and sort by the number of coins in a row (descending)
+		//Could apply the same logic for defense:
+			//Sort the positions by length of red coins it would create.
 
 	//Do I want the bot to play defensively only when user has 3 in a row, or do I want the bot to try and predict moves?
 
 	//Else: play random?
+
+//Decided on sort placement positions idea:
+	//Defense: sort placement position by biggest length of blue coins sequence it would interrupt
+	//Don't really need to sort every placement, just the biggest length
+		//Actually have to, bc then I would have no way to determine which is greater or which position it is.
+		//With the array, the index is the board position and the value is the length
+			//So we can't actually sort this array, or else the positions would make no sense
+	int defense[7] = {0, 0, 0, 0, 0, 0, 0};
+
+	for(int j = 0; j < NUM_COLS; j++){
+		for(int i = NUM_ROWS-1; i >= 0; i--){
+			if(board[i][j] == 0){
+				//check this position for how many blue coins it would interrupt
+				//check below
+				int sequence_length = 0; //var to track length of current sequence
+				for(int a = i; a < NUM_ROWS; a++){
+					if(board[a][j] == 1) sequence_length++; //if a blue coin is detected below, increment the sequence
+				}
+
+				//if the current sequence being checked is greater than the biggest sequence stored, update it
+				if(sequence_length > defense[j]) defense[j] = sequence_length;
+
+				sequence_length = 0; //reset length to use for next checks
+				
+				//check right+left
+				//Have to consider sequences that are not continuous (e.g., (5,0), (5,1), and (5,3) -> placing a coin at (5,2) would avoid a win )
+				//Is there a blue coin immediately to the left? 
+					//If not, no need to check left
+					//If yes, how many?
+				int left = 0;
+				for(int b = j-1; b >= 0; b--){
+					if(board[i][b] == 1) left++;
+					else break;
+				}
+
+				//Is there a blue coin immediately to the right? 
+					//If not, no need to check right
+					//If yes, how many?
+				int right = 0;
+				for(int b = j+1; b < NUM_COLS; b++){
+					if(board[i][b] == 1) right++;
+					else break;
+				}
+
+				//Sum left and right sequences
+				sequence_length = left+right;
+
+				if(sequence_length > defense[j]) defense[j] = sequence_length;
+
+				//check diagonals (all diagonals+both directions)
+				//Apply same logic used for left+right
+
+				//Check top-left/bottom-right diagonal
+				//Check top-left
+				int a = i-1;
+				int b = j-1;
+				int top_left = 0;
+				while(a >= 0 && b >= 0){
+					if(board[a][b] == 1) top_left++;
+					a--;
+					b--;
+				}
+
+				//Check bottom-right
+				a = i+1;
+				b = j+1;
+				int bottom_right = 0;
+				while(a < NUM_ROWS && b < NUM_COLS){
+					if(board[a][b] == 1) bottom_right++;
+					else break;
+					a++;
+					b++;
+				}
+
+				//Sum top-left and bottom-right sequences
+				sequence_length = top_left+bottom_right;
+
+				if(sequence_length > defense[j]) defense[j] = sequence_length;
+				
+				//Check top-right/bottom-left diagonal
+				//Check top-right
+				a = i-1;
+				b = j+1;
+				int top_right = 0;
+				while(a >= 0 && b < NUM_COLS){
+					if(board[a][b] == 1) top_right++;
+					else break;
+					a--;
+					b++;
+				}
+
+				//Check bottom-left
+				a = i+1;
+				b = j-1;
+				int bottom_left = 0;
+				while(a < NUM_ROWS && b >= 0){
+					if(board[a][b] == 1) bottom_left++;
+					else break;
+					a++;
+					b--;
+				}
+
+				//Sum top-right and bottom-left sequences
+				sequence_length = top_right+bottom_left;
+
+				if(sequence_length > defense[j]) defense[j] = sequence_length;
+				break;
+			}
+		}
+	}
+
+	//Determine best position
+	int best_defense = 0;
+	for(int j = 0; j < NUM_COLS; j++){
+		if(defense[j] > defense[best_defense]) best_defense = j;
+	}
+
+	//Apply exact same logic to determine best attack, only switching blue coins for red coins
+	int attack[7] = {0, 0, 0, 0, 0, 0, 0};
+
+	for(int j = 0; j < NUM_COLS; j++){
+		for(int i = NUM_ROWS-1; i >= 0; i--){
+			if(board[i][j] == 0){
+				//check this position for how many blue coins it would interrupt
+				//check below
+				int sequence_length = 0; //var to track length of current sequence
+				for(int a = i; a < NUM_ROWS; a++){
+					if(board[a][j] == 2) sequence_length++; //if a red coin is detected below, increment the sequence
+				}
+
+				//if the current sequence being checked is greater than the biggest sequence stored, update it
+				if(sequence_length > attack[j]) attack[j] = sequence_length;
+
+				sequence_length = 0; //reset length to use for next checks
+				
+				//check right+left
+				//Have to consider sequences that are not continuous (e.g., (5,0), (5,1), and (5,3) -> placing a coin at (5,2) would yield a win )
+				//Is there a red coin immediately to the left? 
+					//If not, no need to check left
+					//If yes, how many?
+				int left = 0;
+				for(int b = j-1; b >= 0; b--){
+					if(board[i][b] == 2) left++;
+					else break;
+				}
+
+				//Is there a red coin immediately to the right? 
+					//If not, no need to check right
+					//If yes, how many?
+				int right = 0;
+				for(int b = j+1; b < NUM_COLS; b++){
+					if(board[i][b] == 2) right++;
+					else break;
+				}
+
+				//Sum left and right sequences
+				sequence_length = left+right;
+
+				if(sequence_length > attack[j]) attack[j] = sequence_length;
+
+				//check diagonals (all diagonals+both directions)
+				//Apply same logic used for left+right
+
+				//Check top-left/bottom-right diagonal
+				//Check top-left
+				int a = i-1;
+				int b = j-1;
+				int top_left = 0;
+				while(a >= 0 && b >= 0){
+					if(board[a][b] == 2) top_left++;
+					a--;
+					b--;
+				}
+
+				//Check bottom-right
+				a = i+1;
+				b = j+1;
+				int bottom_right = 0;
+				while(a < NUM_ROWS && b < NUM_COLS){
+					if(board[a][b] == 2) bottom_right++;
+					else break;
+					a++;
+					b++;
+				}
+
+				//Sum top-left and bottom-right sequences
+				sequence_length = top_left+bottom_right;
+
+				if(sequence_length > attack[j]) attack[j] = sequence_length;
+				
+				//Check top-right/bottom-left diagonal
+				//Check top-right
+				a = i-1;
+				b = j+1;
+				int top_right = 0;
+				while(a >= 0 && b < NUM_COLS){
+					if(board[a][b] == 2) top_right++;
+					else break;
+					a--;
+					b++;
+				}
+
+				//Check bottom-left
+				a = i+1;
+				b = j-1;
+				int bottom_left = 0;
+				while(a < NUM_ROWS && b >= 0){
+					if(board[a][b] == 2) bottom_left++;
+					else break;
+					a++;
+					b--;
+				}
+
+				//Sum top-right and bottom-left sequences
+				sequence_length = top_right+bottom_left;
+
+				if(sequence_length > attack[j]) attack[j] = sequence_length;
+				
+				break;
+			}
+		}
+	}
+
+	//Determine best position
+	int best_attack = 0;
+	for(int j = 0; j < NUM_COLS; j++){
+		if(attack[j] > attack[best_attack]) best_attack = j;
+	}
+
+	if(defense[best_defense] > attack[best_attack] && defense[best_defense] > 2) return best_defense;
+
+	if(attack[best_attack] == 0) return Generate_Random_Move(hrng);
+
+	return best_attack;
+
+	//Improvement ideas:
+		//Don't take into consideration an attack that, although creates a bigger sequence, can't result in a win (e.g., col/row almost full)
+		//Don't take into consideration a defense that, although interrupts the biggest sequence, it won't stop a win (e.g., column almost full)
 }
 
 bool Place_Coin(int position, int player){
@@ -464,7 +714,7 @@ GAME_RESULT Game_Status(){
 	return TIE;
 }
 
-void Display_Results(){
+void Display_Results(uint32_t seconds){
 	GAME_RESULT result = Game_Status();
 
 	if(result == BLUE_WINS) num_blue_victories++;
@@ -515,6 +765,9 @@ void Display_Results(){
 	char str_games[20];
 	sprintf(str_games, "%d", num_games);
 
+	char str_seconds[20];
+	sprintf(str_seconds, "%d", seconds);
+
 	LCD_SetTextColor(LCD_COLOR_BLACK);
 	LCD_DisplayChar(5, 10, "Total games played: ");
 	LCD_DisplayChar(200, 10, str_games);
@@ -534,7 +787,7 @@ void Display_Results(){
 	LCD_DisplayChar(20, 100, "games ended in a tie");
 
 	LCD_DisplayChar(5, 130, "This game took ");
-	// LCD_DisplayChar(160, 130, timer_value);
+	LCD_DisplayChar(160, 130, str_seconds);
 	LCD_DisplayChar(155, 150, "seconds");
 
 	LCD_DisplayChar(10, 200, "Play another game?");
@@ -544,6 +797,61 @@ void Display_Results(){
 
 	LCD_SetTextColor(LCD_COLOR_GREEN);
 	LCD_DisplayChar(190, 250, "Yes");
+}
+
+void Display_Quit_Screen(){
+	LCD_Clear(0, LCD_COLOR_WHITE);
+	LCD_SetTextColor(LCD_COLOR_BLACK);
+
+	LCD_DisplayChar(20, 80, "See you next time!");
+	
+	LCD_DisplayChar(0, 170, "Terminating program");
+	HAL_Delay(750);
+
+	LCD_DisplayChar(0, 170, "Terminating program.");
+	HAL_Delay(750);
+
+	LCD_DisplayChar(0, 170, "Terminating program..");
+	HAL_Delay(750);
+
+	LCD_DisplayChar(0, 170, "Terminating program...");
+	HAL_Delay(750);
+
+	LCD_DisplayChar(50, 200, "Goodbye!");
+	HAL_Delay(750);
+
+	LCD_Clear(0, LCD_COLOR_BLACK);
+}
+
+void Reset_Board(){
+	for(int i = 0; i < NUM_ROWS; i++){
+		for(int j = 0; j < NUM_COLS; j++){
+			board[i][j] = 0;
+		}
+	}
+	//reset timer
+}
+
+void Reset_Stats(){
+	num_blue_victories = 0;
+	num_red_victories = 0;
+	num_ties = 0;
+}
+
+void Start_Timer(){
+
+}
+
+void Stop_Timer(){
+
+}
+
+void Reset_Timer(){
+
+}
+
+uint32_t Get_Timer_Value(){
+	return 0;
 }
 
 void EXTI0_IRQHandler(){ //Button Interrupt Handler
