@@ -27,19 +27,19 @@ void LCD_Touch_Polling_Demo(void);
 #endif // (COMPILE_TOUCH_FUNCTIONS == 1)
 
 #if COMPILE_TOUCH_FUNCTIONS == 1
-static STMPE811_TouchData StaticTouchData;
+[[maybe_unused]] static STMPE811_TouchData StaticTouchData;
 #endif // COMPILE_TOUCH_FUNCTIONS
 
 
 #define NUM_COLS 7
 #define NUM_ROWS 6
 
-static int board[NUM_ROWS][NUM_COLS];
+[[maybe_unused]] static int board[NUM_ROWS][NUM_COLS];
 
-static int num_blue_victories;
-static int num_red_victories;
-static int num_ties;
-static int turns;
+[[maybe_unused]] static int num_blue_victories;
+[[maybe_unused]] static int num_red_victories;
+[[maybe_unused]] static int num_ties;
+[[maybe_unused]] static int turns;
 
 typedef enum{
     ONGOING = 0,
@@ -86,20 +86,12 @@ void Two_Player();
 
 GAME_RESULT Game_Status();
 
-void Display_Results(uint32_t seconds);
+void Display_Results(int seconds);
 
 void Display_Quit_Screen();
 
 void Reset_Board();
 
 void Reset_Stats();
-
-void Start_Timer();
-
-void Stop_Timer();
-
-void Reset_Timer();
-
-uint32_t Get_Timer_Value();
 
 #endif /* INC_APPLICATIONCODE_H_ */

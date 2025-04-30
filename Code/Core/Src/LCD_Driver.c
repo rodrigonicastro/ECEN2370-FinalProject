@@ -331,17 +331,19 @@ void visualDemo(void)
 	LCD_SetTextColor(LCD_COLOR_BLACK);
 	LCD_SetFont(&Font16x24);
 
-	LCD_DisplayChar(100,140,'H');
-	LCD_DisplayChar(115,140,'e');
-	LCD_DisplayChar(125,140,'l');
-	LCD_DisplayChar(130,140,'l');
-	LCD_DisplayChar(140,140,'o');
+	//I changed the LCD_DisplayChar function, so this is giving me warnings.
+	//Commenting to stop warnings (it's not being used anyways).
+	// LCD_DisplayChar(100,140,'H');
+	// LCD_DisplayChar(115,140,'e');
+	// LCD_DisplayChar(125,140,'l');
+	// LCD_DisplayChar(130,140,'l');
+	// LCD_DisplayChar(140,140,'o');
 
-	LCD_DisplayChar(100,160,'W');
-	LCD_DisplayChar(115,160,'o');
-	LCD_DisplayChar(125,160,'r');
-	LCD_DisplayChar(130,160,'l');
-	LCD_DisplayChar(140,160,'d');
+	// LCD_DisplayChar(100,160,'W');
+	// LCD_DisplayChar(115,160,'o');
+	// LCD_DisplayChar(125,160,'r');
+	// LCD_DisplayChar(130,160,'l');
+	// LCD_DisplayChar(140,160,'d');
 }
 
 /**
@@ -395,27 +397,32 @@ LCD_Quadrant returnTouchQuadrant(STMPE811_TouchData touchLocation){
 	//DIMENSIONS: X: (0, 240) ; Y: (0, 320)
 
 	if(touchLocation.x >= 0 && touchLocation.x < 120 && touchLocation.y >= 0 && touchLocation.y < 160){
-		printf("Top Right\n");
+		// printf("Top Right\n");
+		HAL_Delay(100);
 		return TOP_RIGHT;
 	}
 
 	else if(touchLocation.x >= 120 && touchLocation.x <= 240 && touchLocation.y >= 0 && touchLocation.y < 160){
-		printf("Top Left\n");
+		// printf("Top Left\n");
+		HAL_Delay(100);
 		return TOP_LEFT;
 	}
 
 	else if(touchLocation.x >= 0 && touchLocation.x < 120 && touchLocation.y >= 160 && touchLocation.y <= 320){
-		printf("Bottom Right\n");
+		// printf("Bottom Right\n");
+		HAL_Delay(100);
 		return BOTTOM_RIGHT;
 	}
 
 	else if(touchLocation.x >= 120 && touchLocation.x <= 240 && touchLocation.y >= 160 && touchLocation.y <= 320){
-		printf("Bottom Left\n");
+		// printf("Bottom Left\n");
+		HAL_Delay(100);
 		return BOTTOM_LEFT;
 	}
 
 	else{
-		printf("Detection Error\n");
+		// printf("Detection Error\n");
+		HAL_Delay(100);
 		return DETECTION_ERROR;
 	}
 }

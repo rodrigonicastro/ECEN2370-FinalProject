@@ -168,10 +168,8 @@ void Display_Coins(){
 }
 
 void Single_Player(RNG_HandleTypeDef* hrng){
-	//start timer
-	
 	turns = 0;
-
+	Drop_Coin = 0;
 	while(Game_Status() == ONGOING){
 		//User Turn
 		if(turns % 2 == 0){
@@ -242,7 +240,6 @@ void Single_Player(RNG_HandleTypeDef* hrng){
 		turns++;
 	}
 	addSchedulerEvent(DISPLAY_RESULTS_EVENT);
-	//stop timer
 }
 
 int Generate_Random_Move(RNG_HandleTypeDef* hrng){
@@ -253,37 +250,6 @@ int Generate_Random_Move(RNG_HandleTypeDef* hrng){
 }
 
 int Generate_AI_Move(RNG_HandleTypeDef* hrng){
-	//Defense: if blue has 3 in a row and red can block it, play this move
-		//Could either get a list of sequences and sort by the number of coins in a row (descending)
-			//This would make the bot very defensive
-			//Could store this as a 2d array where the inner arrays would have size 2 with each element being the x,y values
-		//Or only store sequences with 3 blue coins in a row
-			//This would make the bot less defensive
-
-		//New idea: sort placement positions (0-5) by the length of blue sequence it would interrupt
-			//How to do this? no idea yet
-				//Brute force is obviously a potential method, but I don't like it
-				//If I place a red coin in position 0, what is the length of blue coins I would be interrupting? etc.
-					//Play the move that interrupts the biggest sequence if this sequence >(=?) 2, else: play attack
-		
-		//Also needs to account for non-continous sequences, like (0,0), (0,1), and (0,3)
-			//(if we placed a red coin in (0,2) it would stop blue from winning)
-
-	//Attack: play a move where # of red coins in a row increases (prioritize higher nums)
-		//Could get a list of sequences and sort by the number of coins in a row (descending)
-		//Could apply the same logic for defense:
-			//Sort the positions by length of red coins it would create.
-
-	//Do I want the bot to play defensively only when user has 3 in a row, or do I want the bot to try and predict moves?
-
-	//Else: play random?
-
-//Decided on sort placement positions idea:
-	//Defense: sort placement position by biggest length of blue coins sequence it would interrupt
-	//Don't really need to sort every placement, just the biggest length
-		//Actually have to, bc then I would have no way to determine which is greater or which position it is.
-		//With the array, the index is the board position and the value is the length
-			//So we can't actually sort this array, or else the positions would make no sense
 	int defense[7] = {0, 0, 0, 0, 0, 0, 0};
 
 	for(int j = 0; j < NUM_COLS; j++){
@@ -291,15 +257,32 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 			if(board[i][j] == 0){
 				//check this position for how many blue coins it would interrupt
 				//check below
+
 				int sequence_length = 0; //var to track length of current sequence
-				for(int a = i; a < NUM_ROWS; a++){
+				int potential_sequence = 0;
+				int available_slots = 0;
+				
+				for(int a = i+1; a < NUM_ROWS; a++){
 					if(board[a][j] == 1) sequence_length++; //if a blue coin is detected below, increment the sequence
+					else break;
 				}
+
+				//if potential sequence >= 4, keep it. If not, make it zero
+				for(int a = i; a >= 0; a--){
+					if(board[a][j] == 0) available_slots++;
+					else break;
+				}
+
+				potential_sequence = sequence_length + available_slots + 1;
+
+				if(potential_sequence < 4) sequence_length = 0;
 
 				//if the current sequence being checked is greater than the biggest sequence stored, update it
 				if(sequence_length > defense[j]) defense[j] = sequence_length;
 
 				sequence_length = 0; //reset length to use for next checks
+				potential_sequence = 0;
+				available_slots = 0;
 				
 				//check right+left
 				//Have to consider sequences that are not continuous (e.g., (5,0), (5,1), and (5,3) -> placing a coin at (5,2) would avoid a win )
@@ -324,6 +307,25 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				//Sum left and right sequences
 				sequence_length = left+right;
 
+				//Check left+right potential lengths to avoid stupid placements (don't try to block a sequence that cannot reach 4 coins)
+				int available_left = 0;
+				for(int b = j-1; b >= 0; b--){
+					if(board[i][b] == 0) available_left++;
+					else break;
+				}
+
+				int available_right = 0;
+				for(int b = j+1; b < NUM_COLS; b++){
+					if(board[i][b] == 0) available_right++;
+					else break;
+				}
+
+				available_slots = available_left + available_right + 1; //add one to account for current slot
+
+				potential_sequence = sequence_length + available_slots;
+
+				if(potential_sequence < 4) sequence_length = 0;
+
 				if(sequence_length > defense[j]) defense[j] = sequence_length;
 
 				//check diagonals (all diagonals+both directions)
@@ -334,9 +336,12 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				int a = i-1;
 				int b = j-1;
 				int top_left = 0;
+				int available_top_left = 0;
 				while(a >= 0 && b >= 0){
 					if(board[a][b] == 1) top_left++;
-					a--;
+					else if(board[a][b] == 0) available_top_left++;
+					else break;
+					a--;	
 					b--;
 				}
 
@@ -344,8 +349,10 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				a = i+1;
 				b = j+1;
 				int bottom_right = 0;
+				int available_bottom_right = 0;
 				while(a < NUM_ROWS && b < NUM_COLS){
 					if(board[a][b] == 1) bottom_right++;
+					else if(board[a][b] == 0) available_bottom_right++;
 					else break;
 					a++;
 					b++;
@@ -354,6 +361,11 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				//Sum top-left and bottom-right sequences
 				sequence_length = top_left+bottom_right;
 
+				//Check top-left+bottom-right potential lengths to avoid stupid placements (don't try to block a sequence that cannot reach 4 coins)
+				potential_sequence = sequence_length + available_bottom_right+available_top_left + 1; //add 1 to account for current slot
+
+				if(potential_sequence < 4) sequence_length = 0;
+
 				if(sequence_length > defense[j]) defense[j] = sequence_length;
 				
 				//Check top-right/bottom-left diagonal
@@ -361,8 +373,10 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				a = i-1;
 				b = j+1;
 				int top_right = 0;
+				int available_top_right = 0;
 				while(a >= 0 && b < NUM_COLS){
 					if(board[a][b] == 1) top_right++;
+					else if(board[a][b] == 0) available_top_right++;
 					else break;
 					a--;
 					b++;
@@ -372,8 +386,10 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				a = i+1;
 				b = j-1;
 				int bottom_left = 0;
+				int available_bottom_left = 0;
 				while(a < NUM_ROWS && b >= 0){
 					if(board[a][b] == 1) bottom_left++;
+					else if(board[a][b] == 0) available_bottom_left++;
 					else break;
 					a++;
 					b--;
@@ -381,6 +397,11 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 
 				//Sum top-right and bottom-left sequences
 				sequence_length = top_right+bottom_left;
+
+				//Check top-left+bottom-right potential lengths to avoid stupid placements (don't try to block a sequence that cannot reach 4 coins)
+				potential_sequence = sequence_length + available_bottom_left+available_top_right + 1; //add 1 to account for current slot
+
+				if(potential_sequence < 4) sequence_length = 0;
 
 				if(sequence_length > defense[j]) defense[j] = sequence_length;
 				break;
@@ -402,12 +423,27 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 			if(board[i][j] == 0){
 				//check this position for how many blue coins it would interrupt
 				//check below
+
 				int sequence_length = 0; //var to track length of current sequence
-				for(int a = i; a < NUM_ROWS; a++){
+				int potential_sequence = 0;
+				int available_slots = 0;
+
+				for(int a = i+1; a < NUM_ROWS; a++){
 					if(board[a][j] == 2) sequence_length++; //if a red coin is detected below, increment the sequence
+					else break;
+				}
+				
+				//if potential sequence >= 4, keep it. If not, make it zero
+				for(int a = i; a >= 0; a--){
+					if(board[a][j] == 0) available_slots++;
+					else break;
 				}
 
-				//if the current sequence being checked is greater than the biggest sequence stored, update it
+				potential_sequence = sequence_length + available_slots;
+
+				if(potential_sequence < 4) sequence_length = 0;
+
+				//if the current sequence being checked is greater than the biggest sequence stored for this position, update it
 				if(sequence_length > attack[j]) attack[j] = sequence_length;
 
 				sequence_length = 0; //reset length to use for next checks
@@ -435,6 +471,25 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				//Sum left and right sequences
 				sequence_length = left+right;
 
+				//Check left+right potential lengths to avoid stupid placements (don't try to complete a sequence that cannot reach 4 coins)
+				int available_left = 0;
+				for(int b = j-1; b >= 0; b--){
+					if(board[i][b] == 0) available_left++;
+					else break;
+				}
+
+				int available_right = 0;
+				for(int b = j+1; b < NUM_COLS; b++){
+					if(board[i][b] == 0) available_right++;
+					else break;
+				}
+
+				available_slots = available_left + available_right + 1; //add one to account for current slot
+				
+				potential_sequence = sequence_length + available_slots;
+
+				if(potential_sequence < 4) sequence_length = 0;
+
 				if(sequence_length > attack[j]) attack[j] = sequence_length;
 
 				//check diagonals (all diagonals+both directions)
@@ -445,8 +500,11 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				int a = i-1;
 				int b = j-1;
 				int top_left = 0;
+				int available_top_left = 0;
 				while(a >= 0 && b >= 0){
 					if(board[a][b] == 2) top_left++;
+					else if(board[a][b] == 0) available_top_left++;
+					else break;
 					a--;
 					b--;
 				}
@@ -455,8 +513,10 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				a = i+1;
 				b = j+1;
 				int bottom_right = 0;
+				int available_bottom_right = 0;
 				while(a < NUM_ROWS && b < NUM_COLS){
 					if(board[a][b] == 2) bottom_right++;
+					else if(board[a][b] == 0) available_bottom_right++;
 					else break;
 					a++;
 					b++;
@@ -465,6 +525,11 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				//Sum top-left and bottom-right sequences
 				sequence_length = top_left+bottom_right;
 
+				//Check top-left+bottom-right potential lengths to avoid stupid placements (don't try to block a sequence that cannot reach 4 coins)
+				potential_sequence = sequence_length + available_bottom_right+available_top_left + 1; //add 1 to account for current slot
+
+				if(potential_sequence < 4) sequence_length = 0;
+
 				if(sequence_length > attack[j]) attack[j] = sequence_length;
 				
 				//Check top-right/bottom-left diagonal
@@ -472,8 +537,10 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				a = i-1;
 				b = j+1;
 				int top_right = 0;
+				int available_top_right = 0;
 				while(a >= 0 && b < NUM_COLS){
 					if(board[a][b] == 2) top_right++;
+					else if(board[a][b] == 0) available_top_right++;
 					else break;
 					a--;
 					b++;
@@ -483,8 +550,10 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 				a = i+1;
 				b = j-1;
 				int bottom_left = 0;
+				int available_bottom_left = 0;
 				while(a < NUM_ROWS && b >= 0){
 					if(board[a][b] == 2) bottom_left++;
+					else if(board[a][b] == 0) available_bottom_left++;
 					else break;
 					a++;
 					b--;
@@ -492,6 +561,11 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 
 				//Sum top-right and bottom-left sequences
 				sequence_length = top_right+bottom_left;
+
+				//Check bottom-left+top-right potential lengths to avoid stupid placements (don't try to complete a sequence that cannot reach 4 coins)
+				potential_sequence = sequence_length + available_bottom_left+available_top_right + 1; //add 1 to account for current slot
+
+				if(potential_sequence < 4) sequence_length = 0;
 
 				if(sequence_length > attack[j]) attack[j] = sequence_length;
 				
@@ -508,13 +582,15 @@ int Generate_AI_Move(RNG_HandleTypeDef* hrng){
 
 	if(defense[best_defense] > attack[best_attack] && defense[best_defense] > 2) return best_defense;
 
-	if(attack[best_attack] == 0) return Generate_Random_Move(hrng);
+	if(attack[best_attack] == 0){
+		int move = Generate_Random_Move(hrng);
+		while(move == best_defense){
+			move = Generate_Random_Move(hrng);
+		}
+		return move;
+	}
 
 	return best_attack;
-
-	//Improvement ideas:
-		//Don't take into consideration an attack that, although creates a bigger sequence, can't result in a win (e.g., col/row almost full)
-		//Don't take into consideration a defense that, although interrupts the biggest sequence, it won't stop a win (e.g., column almost full)
 }
 
 bool Place_Coin(int position, int player){
@@ -535,6 +611,7 @@ bool Place_Coin(int position, int player){
 
 void Two_Player(){
 	turns = 0;
+	Drop_Coin = 0;
 
 	while(Game_Status() == ONGOING){
 		//Blue's Turn
@@ -644,8 +721,6 @@ void Two_Player(){
 }
 
 GAME_RESULT Game_Status(){
-	//algo idea (brute force): first check for all vertical solutions, then horizontal, then diagonal
-	
 	//Check for wins in each position
 	for(int i = 0; i < NUM_ROWS; i++){
 		for(int j = 0; j < NUM_COLS; j++){
@@ -714,7 +789,7 @@ GAME_RESULT Game_Status(){
 	return TIE;
 }
 
-void Display_Results(uint32_t seconds){
+void Display_Results(int seconds){
 	GAME_RESULT result = Game_Status();
 
 	if(result == BLUE_WINS) num_blue_victories++;
@@ -768,6 +843,9 @@ void Display_Results(uint32_t seconds){
 	char str_seconds[20];
 	sprintf(str_seconds, "%d", seconds);
 
+	char str_turns[20];
+	sprintf(str_turns, "%d", turns);
+
 	LCD_SetTextColor(LCD_COLOR_BLACK);
 	LCD_DisplayChar(5, 10, "Total games played: ");
 	LCD_DisplayChar(200, 10, str_games);
@@ -789,6 +867,10 @@ void Display_Results(uint32_t seconds){
 	LCD_DisplayChar(5, 130, "This game took ");
 	LCD_DisplayChar(160, 130, str_seconds);
 	LCD_DisplayChar(155, 150, "seconds");
+
+	LCD_DisplayChar(5, 170, "and");
+	LCD_DisplayChar(50, 170, str_turns);
+	LCD_DisplayChar(80, 170, "turns!");
 
 	LCD_DisplayChar(10, 200, "Play another game?");
 
@@ -829,29 +911,12 @@ void Reset_Board(){
 			board[i][j] = 0;
 		}
 	}
-	//reset timer
 }
 
 void Reset_Stats(){
 	num_blue_victories = 0;
 	num_red_victories = 0;
 	num_ties = 0;
-}
-
-void Start_Timer(){
-
-}
-
-void Stop_Timer(){
-
-}
-
-void Reset_Timer(){
-
-}
-
-uint32_t Get_Timer_Value(){
-	return 0;
 }
 
 void EXTI0_IRQHandler(){ //Button Interrupt Handler

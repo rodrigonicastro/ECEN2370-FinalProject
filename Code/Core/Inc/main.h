@@ -68,9 +68,8 @@ typedef enum{
   QUIT = 4
 } GAME_STATE;
 
-#define PCLK 16000000
-
-#define SR_UIF_OFFSET 0
+[[maybe_unused]] static int start_time;
+[[maybe_unused]] static int end_time;
 
 #define PC14_OSC32_IN_Pin GPIO_PIN_14
 #define PC14_OSC32_IN_GPIO_Port GPIOC

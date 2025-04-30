@@ -104,7 +104,6 @@ int main(void)
   MX_RNG_Init();
   
   MX_TIM2_Init();
-  HAL_TIM_Base_Start_IT(&htim2);
 
   MX_SPI5_Init();
   MX_I2C3_Init();
@@ -121,7 +120,6 @@ int main(void)
   //State Machine Loop
   while(1){
     if(state == MENU){
-      printf("%d\n", state);
       while (1){
         uint32_t scheduledEvents = getScheduledEvents();
         
@@ -145,16 +143,12 @@ int main(void)
     }
     
     else if(state == SINGLE_PLAYER){
-      HAL_TIM_Base_Start(&htim2);
-      printf("starting timer\n");
-
       addSchedulerEvent(DISPLAY_BOARD_EVENT);
       addSchedulerEvent(SINGLE_PLAYER_EVENT);
 
       LCD_Clear(0, LCD_COLOR_WHITE);
-
-      printf("%d\n", state);
-
+      
+      start_time = HAL_GetTick();
       while (1){
         uint32_t scheduledEvents = getScheduledEvents();
         if(scheduledEvents && DISPLAY_BOARD_EVENT){
@@ -166,24 +160,19 @@ int main(void)
             Single_Player(&hrng);
             removeSchedulerEvent(SINGLE_PLAYER_EVENT);
         }
+        end_time = HAL_GetTick();
         state = RESULTS;
         break;
       }
-      printf("stopping timer\n");
-      HAL_TIM_Base_Stop(&htim2);
     }
 
     else if(state == TWO_PLAYER){
-      HAL_TIM_Base_Start(&htim2);
-      printf("starting timer\n");
-
       addSchedulerEvent(DISPLAY_BOARD_EVENT);
       addSchedulerEvent(TWO_PLAYER_EVENT);
 
       LCD_Clear(0, LCD_COLOR_WHITE);
 
-      printf("%d\n", state);
-
+      start_time = HAL_GetTick();
       while (1){
         uint32_t scheduledEvents = getScheduledEvents();
         if(scheduledEvents && DISPLAY_BOARD_EVENT){
@@ -195,24 +184,14 @@ int main(void)
             Two_Player();
             removeSchedulerEvent(TWO_PLAYER_EVENT);
         }
+        end_time = HAL_GetTick();
         state = RESULTS;
         break;
       }
-      printf("stopping timer\n");
-      HAL_TIM_Base_Stop(&htim2);
     }
 
     else if(state == RESULTS){
-      printf("%d\n", state);
-      uint32_t TIM_CNT = __HAL_TIM_GET_COUNTER(&htim2);
-      uint32_t sysclockfreq = HAL_RCC_GetSysClockFreq();
-      printf("freq: %d\n", sysclockfreq);
-      uint32_t seconds = (TIM_CNT/sysclockfreq)*2;
-
-      
-
-      printf("%d seconds \n", seconds);
-      printf("%d timer\n", TIM_CNT);
+      int seconds = (end_time - start_time) / 1000;
 
       while (1){
         uint32_t scheduledEvents = getScheduledEvents();
@@ -232,9 +211,6 @@ int main(void)
               state = MENU;
               addSchedulerEvent(DISPLAY_MENU_SCREEN_EVENT);
               Reset_Board();
-              printf("resetting timer\n");
-              __HAL_TIM_SET_COUNTER(&htim2, 0);
-              printf("timer: %d", __HAL_TIM_GET_COUNTER(&htim2));
               break;
           }
         }
@@ -242,7 +218,6 @@ int main(void)
     }
 
     else if(state == QUIT){
-      printf("%d\n", state);
       while(1){
         uint32_t scheduledEvents = getScheduledEvents();
         if(scheduledEvents && DISPLAY_QUIT_SCREEN_EVENT){
@@ -254,10 +229,6 @@ int main(void)
       break;
     }
   }
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-  printf("timer interrupt");
 }
 
 /**
@@ -520,7 +491,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 4294967295;
+  htim2.Init.Period = 839999999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
@@ -735,15 +706,6 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-// void TIM2_IRQHandler(){
-// 	DisableInterrupt(TIM2_IRQn);
-
-//   printf("timer interrupt");
-// 	__HAL_TIM_CLEAR_IT(&htim2, SR_UIF_OFFSET);
-
-// 	EnableInterrupt(TIM2_IRQn);
-// }
 
 #ifdef  USE_FULL_ASSERT
 /**
