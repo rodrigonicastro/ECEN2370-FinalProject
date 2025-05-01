@@ -184,14 +184,14 @@ void Single_Player(RNG_HandleTypeDef* hrng){
 				bool touched = 0;
 				if(returnTouchStateAndLocation(&StaticTouchData)  == STMPE811_State_Pressed){
 					LCD_Quadrant touchedQuadrant = returnTouchQuadrant(StaticTouchData);
-					if(touchedQuadrant == BOTTOM_RIGHT){
+					if(touchedQuadrant == BOTTOM_RIGHT || touchedQuadrant == TOP_RIGHT){
 						if(position <= 0) position = 6;
 						else position--;
 
 						touched = 1;
 					}
 	
-					else if(touchedQuadrant == BOTTOM_LEFT){
+					else if(touchedQuadrant == BOTTOM_LEFT || touchedQuadrant == TOP_LEFT){
 						if(position >= 6) position = 0;
 						else position++;
 
@@ -627,14 +627,14 @@ void Two_Player(){
 				bool touched = 0;
 				if(returnTouchStateAndLocation(&StaticTouchData)  == STMPE811_State_Pressed){
 					LCD_Quadrant touchedQuadrant = returnTouchQuadrant(StaticTouchData);
-					if(touchedQuadrant == BOTTOM_RIGHT){
+					if(touchedQuadrant == BOTTOM_RIGHT || touchedQuadrant == TOP_RIGHT){
 						if(position <= 0) position = 6;
 						else position--;
 
 						touched = 1;
 					}
 	
-					else if(touchedQuadrant == BOTTOM_LEFT){
+					else if(touchedQuadrant == BOTTOM_LEFT || touchedQuadrant == TOP_LEFT){
 						if(position >= 6) position = 0;
 						else position++;
 
@@ -678,14 +678,14 @@ void Two_Player(){
 				bool touched = 0;
 				if(returnTouchStateAndLocation(&StaticTouchData)  == STMPE811_State_Pressed){
 					LCD_Quadrant touchedQuadrant = returnTouchQuadrant(StaticTouchData);
-					if(touchedQuadrant == BOTTOM_RIGHT){
+					if(touchedQuadrant == BOTTOM_RIGHT || touchedQuadrant == TOP_RIGHT){
 						if(position <= 0) position = 6;
 						else position--;
 
 						touched = 1;
 					}
 	
-					else if(touchedQuadrant == BOTTOM_LEFT){
+					else if(touchedQuadrant == BOTTOM_LEFT || touchedQuadrant == TOP_LEFT){
 						if(position >= 6) position = 0;
 						else position++;
 

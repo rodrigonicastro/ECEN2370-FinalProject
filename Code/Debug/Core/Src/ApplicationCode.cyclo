@@ -15,11 +15,11 @@
 ../Core/Src/ApplicationCode.c:142:6:Display_Board	3
 ../Core/Src/ApplicationCode.c:152:6:Update_Board	1
 ../Core/Src/ApplicationCode.c:156:6:Display_Coins	5
-../Core/Src/ApplicationCode.c:170:6:Single_Player	12
+../Core/Src/ApplicationCode.c:170:6:Single_Player	14
 ../Core/Src/ApplicationCode.c:245:5:Generate_Random_Move	1
 ../Core/Src/ApplicationCode.c:252:5:Generate_AI_Move	87
 ../Core/Src/ApplicationCode.c:596:6:Place_Coin	5
-../Core/Src/ApplicationCode.c:612:6:Two_Player	19
+../Core/Src/ApplicationCode.c:612:6:Two_Player	23
 ../Core/Src/ApplicationCode.c:723:13:Game_Status	41
 ../Core/Src/ApplicationCode.c:792:6:Display_Results	11
 ../Core/Src/ApplicationCode.c:884:6:Display_Quit_Screen	1
